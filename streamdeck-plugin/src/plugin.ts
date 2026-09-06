@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Felipe Drummond
 // SPDX-License-Identifier: MIT
-// Shower Dial — your gas water heater's temperature on one Stream Deck key.
+// Shower Temp Dial — your gas water heater's temperature on one Stream Deck key.
 //
 // One press sets the everyday temperature; a quick double press turns the dial
 // one notch, cycling through a range. One shared Heater object finds the Wi-Fi
@@ -20,7 +20,10 @@ import {
   discover, nextInCycle, readState, setTarget, TEMPERATURES, type HeaterState,
 } from "./heater.ts";
 import { keyText, pickLocale, type KeyText } from "./i18n.ts";
-import { dialKey, noticeKey } from "./keys.ts";
+import {
+  dialKey, iconGallery, isTint, noticeKey, PLAIN_LOOK, TINTS, type KeyLook,
+} from "./keys.ts";
+import { ICON_NAMES } from "./icons.ts";
 
 const POLL_MS = 2000;
 /** Two presses closer than this are one double press. */
@@ -81,6 +84,8 @@ class Heater {
       progress: this.progress,
       reachable: this.state !== undefined,
       temperatures: TEMPERATURES,
+      icons: iconGallery(),
+      tints: TINTS,
     });
   }
 
@@ -166,7 +171,29 @@ type DialSettings = {
   low?: number;
   high?: number;
   label?: string;
+  icon?: string;
+  iconSize?: number;
+  labelSize?: number;
+  labelColor?: string;
+  labelBold?: boolean;
 };
+
+function clamp(value: unknown, low: number, high: number, fallback: number): number {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.max(low, Math.min(high, number)) : fallback;
+}
+
+/** Nothing typed by hand reaches the SVG: icon name, colour and sizes are all
+ *  checked against what this plugin actually ships. */
+function look(settings: DialSettings): KeyLook {
+  return {
+    icon: ICON_NAMES.includes(settings.icon as any) ? settings.icon! : PLAIN_LOOK.icon,
+    iconSize: clamp(settings.iconSize, 0, 40, PLAIN_LOOK.iconSize),
+    labelSize: clamp(settings.labelSize, 6, 16, PLAIN_LOOK.labelSize),
+    labelColor: isTint(settings.labelColor) ? settings.labelColor! : PLAIN_LOOK.labelColor,
+    labelBold: settings.labelBold === true,
+  };
+}
 
 const DEFAULTS = { home: 37, low: 37, high: 42 };
 
@@ -210,6 +237,7 @@ class DialKey extends SingletonAction<DialSettings> {
       heating: state.heating,
       locked,
       label: settings.label ?? "",
+      look: look(settings),
       detail,
     }));
   }

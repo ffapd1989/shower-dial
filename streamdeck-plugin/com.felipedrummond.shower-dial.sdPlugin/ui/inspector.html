@@ -4,7 +4,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Shower Dial</title>
+<title>Shower Temp Dial</title>
 <style>
   :root { color-scheme: dark; }
   body {
@@ -44,6 +44,22 @@
   .topbar .uitag { font-size: 9.5px; font-weight: 600; letter-spacing: .06em;
                    color: #8a8a8a; margin: 0 3px 0 -1px; }
   .topbar .brand { color: #6a6a6a; font-size: 11px; }
+  .row.top { align-items: flex-start; }
+  .row.top > label { padding-top: 5px; }
+  .row > label.inline { flex: 0 0 auto; text-align: left; display: flex;
+                        align-items: center; gap: 5px; color: #d8d8d8; }
+  input[type="range"] { flex: 1; min-width: 0; accent-color: #ffb02e; }
+  .value { flex: 0 0 28px; font-size: 11.5px; color: #9a9a9a; text-align: right; }
+  .icons { flex: 1; display: flex; flex-wrap: wrap; gap: 5px; }
+  .icons button { padding: 4px; line-height: 0; border-radius: 4px;
+                  background: #343434; border: 1px solid #464646; }
+  .icons button.on { border-color: #ffb02e; background: #4a3c22; }
+  .icons img { width: 24px; height: 24px; display: block; }
+  .tints { flex: 1; display: flex; flex-wrap: wrap; gap: 6px; }
+  .tints button { width: 22px; height: 22px; padding: 0; border-radius: 11px;
+                  border: none; margin: 3px; }
+  /* Ring with a gap, so the mark shows on a pale swatch as well as a dark one. */
+  .tints button.on { box-shadow: 0 0 0 2px #2d2d2d, 0 0 0 4px #e8e8e8; }
 </style>
 </head>
 <body>
@@ -60,7 +76,7 @@
     <option value="es">Español</option>
   </select>
   <span class="grow"></span>
-  <span class="brand">Shower Dial</span>
+  <span class="brand">Shower Temp Dial</span>
 </div>
 
 <div class="card">
@@ -95,11 +111,34 @@
 </div>
 <p class="hint" id="t-cyclehint"></p>
 
+<div class="row top">
+  <label id="t-icon">Icon</label>
+  <div class="icons" id="iconGrid"></div>
+</div>
+
+<div class="row">
+  <label for="iconSize" id="t-iconsize">Icon size</label>
+  <input type="range" id="iconSize" min="0" max="40" step="1" value="22">
+  <span class="value" id="iconSizeValue">22</span>
+</div>
+
 <div class="row">
   <label for="label" id="t-label">Label</label>
   <input type="text" id="label" maxlength="14" autocomplete="off">
 </div>
 <p class="hint" id="t-labelhint"></p>
+
+<div class="row">
+  <label for="labelSize" id="t-labelsize">Label size</label>
+  <input type="range" id="labelSize" min="6" max="16" step="0.5" value="9.5">
+  <span class="value" id="labelSizeValue">9.5</span>
+  <label class="inline"><input type="checkbox" id="labelBold"><b id="t-bold">Bold</b></label>
+</div>
+
+<div class="row">
+  <label id="t-color">Label colour</label>
+  <div class="tints" id="tintGrid"></div>
+</div>
 
 <script>
 "use strict";
@@ -109,6 +148,8 @@ const I18N = {
   en: {
     rescan: "Search again", use: "Use", host: "Address", typeIt: "type the address",
     home: "One press", cycle: "Double press", label: "Label",
+    icon: "Icon", iconsize: "Icon size", labelsize: "Label size", bold: "Bold",
+    color: "Label colour",
     homehint: "Your everyday temperature. One press takes the heater there, turning it on if needed.",
     cyclehint: "Two quick presses turn the dial one notch up through this range, then back to the start.",
     labelhint: "Optional: a name under the number, such as whose shower it is.",
@@ -120,6 +161,8 @@ const I18N = {
   pt: {
     rescan: "Procurar de novo", use: "Usar", host: "Endereço", typeIt: "digite o endereço",
     home: "Um toque", cycle: "Toque duplo", label: "Rótulo",
+    icon: "Ícone", iconsize: "Tamanho do ícone", labelsize: "Tamanho do rótulo", bold: "Negrito",
+    color: "Cor do rótulo",
     homehint: "Sua temperatura de todo dia. Um toque leva o aquecedor até ela, ligando se preciso.",
     cyclehint: "Dois toques rápidos giram o dial um ponto para cima nesta faixa, e depois voltam ao início.",
     labelhint: "Opcional: um nome sob o número, por exemplo de quem é o banho.",
@@ -131,6 +174,8 @@ const I18N = {
   es: {
     rescan: "Buscar de nuevo", use: "Usar", host: "Dirección", typeIt: "escribe la dirección",
     home: "Una pulsación", cycle: "Doble pulsación", label: "Etiqueta",
+    icon: "Icono", iconsize: "Tamaño del icono", labelsize: "Tamaño de la etiqueta", bold: "Negrita",
+    color: "Color de la etiqueta",
     homehint: "Tu temperatura de todos los días. Una pulsación lleva el calentador ahí, encendiéndolo si hace falta.",
     cyclehint: "Dos pulsaciones rápidas giran el dial un punto hacia arriba en este rango, y luego vuelven al inicio.",
     labelhint: "Opcional: un nombre bajo el número, por ejemplo de quién es la ducha.",
@@ -144,7 +189,8 @@ const I18N = {
 let ws = null, ctx = null, actionId = "", settings = {}, global = {};
 let appLang = "en", lang = "en";
 let heater = { host: "", scanning: false, progress: 0, reachable: false, manual: false,
-               temperatures: [] };
+               temperatures: [], icons: [], tints: [] };
+const LOOK = { icon: "shower", iconSize: 22, labelSize: 9.5, labelColor: "#e8eaed" };
 
 const T = () => I18N[lang] || I18N.en;
 
@@ -195,6 +241,8 @@ function connectElgatoStreamDeckSocket(inPort, inUUID, inRegisterEvent, inInfo, 
       heater = msg.payload;
       renderStatus();
       fillTemperatures();
+      buildIcons();
+      buildTints();
     }
   });
 }
@@ -251,9 +299,59 @@ function fillTemperatures() {
   });
 }
 
+/** The picker shows the pictures themselves, drawn by the same code that draws
+ *  the key — a list of names would say nothing about what lands on it. */
+function buildIcons() {
+  const grid = document.getElementById("iconGrid");
+  const chosen = settings.icon || LOOK.icon;
+  grid.innerHTML = "";
+  (heater.icons || []).forEach(function (entry) {
+    const tile = document.createElement("button");
+    tile.type = "button";
+    tile.title = entry.name;
+    if (entry.name === chosen) tile.className = "on";
+    tile.innerHTML = '<img src="' + entry.image + '" alt="' + entry.name + '">';
+    tile.addEventListener("click", function () {
+      settings.icon = entry.name;
+      save();
+      buildIcons();
+    });
+    grid.appendChild(tile);
+  });
+}
+
+/** Swatches, not names: nobody picks a colour from the word "violet". */
+function buildTints() {
+  const grid = document.getElementById("tintGrid");
+  const chosen = settings.labelColor || LOOK.labelColor;
+  grid.innerHTML = "";
+  (heater.tints || []).forEach(function (entry) {
+    const dot = document.createElement("button");
+    dot.type = "button";
+    dot.title = entry.name;
+    dot.className = entry.value === chosen ? "on" : "";
+    dot.style.background = entry.value;
+    dot.addEventListener("click", function () {
+      settings.labelColor = entry.value;
+      save();
+      buildTints();
+    });
+    grid.appendChild(dot);
+  });
+}
+
 function fillForm() {
   fillTemperatures();
+  buildIcons();
+  buildTints();
   document.getElementById("label").value = settings.label || "";
+  const iconSize = settings.iconSize === undefined ? LOOK.iconSize : settings.iconSize;
+  document.getElementById("iconSize").value = iconSize;
+  document.getElementById("iconSizeValue").textContent = iconSize;
+  const labelSize = settings.labelSize || LOOK.labelSize;
+  document.getElementById("labelSize").value = labelSize;
+  document.getElementById("labelSizeValue").textContent = labelSize;
+  document.getElementById("labelBold").checked = settings.labelBold === true;
 }
 
 function applyLanguage() {
@@ -268,6 +366,11 @@ function applyLanguage() {
   document.getElementById("t-cyclehint").textContent = t.cyclehint;
   document.getElementById("t-label").textContent = t.label;
   document.getElementById("t-labelhint").textContent = t.labelhint;
+  document.getElementById("t-icon").textContent = t.icon;
+  document.getElementById("t-iconsize").textContent = t.iconsize;
+  document.getElementById("t-labelsize").textContent = t.labelsize;
+  document.getElementById("t-bold").textContent = t.bold;
+  document.getElementById("t-color").textContent = t.color;
   document.getElementById("t-hint").textContent = t.hint + " ";
   renderStatus();
 }
@@ -310,6 +413,20 @@ document.addEventListener("DOMContentLoaded", function () {
   });
   document.getElementById("label").addEventListener("input", function (e) {
     settings.label = e.target.value;
+    save();
+  });
+  document.getElementById("iconSize").addEventListener("input", function (e) {
+    settings.iconSize = Number(e.target.value);
+    document.getElementById("iconSizeValue").textContent = settings.iconSize;
+    save();
+  });
+  document.getElementById("labelSize").addEventListener("input", function (e) {
+    settings.labelSize = Number(e.target.value);
+    document.getElementById("labelSizeValue").textContent = settings.labelSize;
+    save();
+  });
+  document.getElementById("labelBold").addEventListener("change", function (e) {
+    settings.labelBold = e.target.checked;
     save();
   });
 });

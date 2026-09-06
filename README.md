@@ -1,6 +1,6 @@
 *Language: **English** · [Português](README.pt-BR.md)*
 
-# Shower Dial — your water heater's temperature on one key
+# Shower Temp Dial — your water heater's temperature on one key
 
 [![License](https://img.shields.io/badge/license-MIT-3B6FD4)](LICENSE)
 ![Platform](https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-0078D4)
@@ -41,7 +41,7 @@ npx streamdeck link com.felipedrummond.shower-dial.sdPlugin
 
 ## Set up
 
-Drag **Shower Dial → Dial** onto a key. The panel looks for the module on your network by
+Drag **Shower Temp Dial → Water Heater Temperature** onto a key. The panel looks for the module on your network by
 itself — it takes a few seconds the first time — and shows the address it found. If the
 module is on another network, or the search fails, click *type the address* and enter its
 IP. Then choose the one-press temperature and the double-press range. That is all.

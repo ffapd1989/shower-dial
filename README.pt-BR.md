@@ -1,6 +1,6 @@
 *Idioma: [English](README.md) · **Português***
 
-# Shower Dial — a temperatura do aquecedor numa tecla
+# Shower Temp Dial — a temperatura do aquecedor numa tecla
 
 [![Licença](https://img.shields.io/badge/license-MIT-3B6FD4)](LICENSE)
 ![Plataforma](https://img.shields.io/badge/platform-Windows%2010%20%2F%2011-0078D4)
@@ -41,7 +41,7 @@ npx streamdeck link com.felipedrummond.shower-dial.sdPlugin
 
 ## Configurar
 
-Arraste **Shower Dial → Dial** para uma tecla. O painel procura o módulo na sua rede
+Arraste **Shower Temp Dial → Water Heater Temperature** para uma tecla. O painel procura o módulo na sua rede
 sozinho — leva alguns segundos na primeira vez — e mostra o endereço encontrado. Se o
 módulo estiver em outra rede, ou a busca falhar, clique em *digite o endereço* e informe o
 IP. Depois escolha a temperatura do toque único e a faixa do toque duplo. Só isso.
