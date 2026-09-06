@@ -1,0 +1,49 @@
+{
+  "$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
+  "Name": "Shower Dial",
+  "Version": "0.1.0.0",
+  "Author": "Felipe Drummond",
+  "URL": "https://github.com/ffapd1989/shower-dial",
+  "Description": "Your gas water heater's temperature on one key. Press once for your everyday temperature; double-press to turn the dial one notch. Works with Rinnai® heaters fitted with the Wi-Fi module, directly over your network. The key shows the live setpoint and whether water is being heated.",
+  "Category": "Shower Dial",
+  "CategoryIcon": "imgs/plugin/category",
+  "Icon": "imgs/plugin/plugin",
+  "CodePath": "bin/plugin.js",
+  "SDKVersion": 2,
+  "Software": {
+    "MinimumVersion": "6.5"
+  },
+  "OS": [
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    },
+    {
+      "Platform": "mac",
+      "MinimumVersion": "12"
+    }
+  ],
+  "Nodejs": {
+    "Version": "20",
+    "Debug": "enabled"
+  },
+  "UUID": "com.felipedrummond.shower-dial",
+  "Actions": [
+    {
+      "Name": "Dial",
+      "UUID": "com.felipedrummond.shower-dial.dial",
+      "Icon": "imgs/action/dial",
+      "Tooltip": "Shows the heater's setpoint. Press once to set your everyday temperature; double-press to turn the dial one notch through a range you choose. Turns the heater on first if it was off.",
+      "PropertyInspectorPath": "ui/inspector.html",
+      "Controllers": [
+        "Keypad"
+      ],
+      "States": [
+        {
+          "Image": "imgs/states/dial",
+          "TitleAlignment": "middle"
+        }
+      ]
+    }
+  ]
+}

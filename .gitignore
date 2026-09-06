@@ -1,0 +1,17 @@
+# Nothing about a real house belongs here. The plugin keeps the module's address
+# in Stream Deck's own settings store, never in this tree.
+
+# The Stream Deck writes plugin logs inside the linked folder; they carry the
+# module's address and machine details.
+streamdeck-plugin/com.felipedrummond.shower-dial.sdPlugin/logs/
+
+# Build output: `npm run build` rebuilds it.
+node_modules/
+streamdeck-plugin/com.felipedrummond.shower-dial.sdPlugin/bin/
+*.streamDeckPlugin
+
+# Editor and OS litter
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini

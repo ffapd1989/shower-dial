@@ -1,0 +1,21 @@
+{
+  "name": "shower-dial-streamdeck",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "Stream Deck plugin: set your gas water heater temperature with one key",
+  "scripts": {
+    "build": "node build.mjs",
+    "check": "tsc -p tsconfig.json",
+    "test": "node --experimental-strip-types --test src/*.test.ts"
+  },
+  "dependencies": {
+    "@elgato/streamdeck": "^2.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.9.0"
+  },
+  "license": "MIT"
+}

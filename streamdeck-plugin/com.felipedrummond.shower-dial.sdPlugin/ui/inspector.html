@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<!-- SPDX-FileCopyrightText: 2026 Felipe Drummond -->
+<!-- SPDX-License-Identifier: MIT -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Shower Dial</title>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    font-family: Segoe UI, system-ui, sans-serif;
+    font-size: 13px; color: #d8d8d8; background: #2d2d2d;
+    margin: 0; padding: 10px 12px 16px;
+  }
+  .row { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+  .row > label { flex: 0 0 88px; text-align: right; color: #9a9a9a; }
+  select, input[type="text"] {
+    flex: 1; background: #3d3d3d; color: #e8e8e8;
+    border: 1px solid #4a4a4a; border-radius: 3px; padding: 4px 6px;
+    font-size: 13px; font-family: inherit; min-width: 0;
+  }
+  button {
+    background: #4a4a4a; color: #e8e8e8; border: 1px solid #5a5a5a;
+    border-radius: 3px; padding: 5px 11px; font-size: 12.5px; font-family: inherit;
+    cursor: pointer; white-space: nowrap;
+  }
+  button:hover { background: #565656; }
+  .linkish { background: none; border: none; color: #7aa7e0; padding: 0;
+             font-size: 11px; text-decoration: underline; }
+  .card { background: #262626; border: 1px solid #3d3d3d; border-radius: 5px;
+          padding: 10px 12px; margin-bottom: 10px; }
+  .status { display: flex; align-items: center; gap: 8px; font-size: 12px; min-height: 18px; }
+  .dot { width: 9px; height: 9px; border-radius: 5px; background: #5c626b; flex: 0 0 auto; }
+  .dot.good { background: #7fd1a6; }
+  .dot.bad { background: #e8705c; }
+  .dot.busy { background: #ffb02e; }
+  .grow { flex: 1 1 auto; }
+  .hint { color: #7a7a7a; font-size: 10.5px; line-height: 1.5; margin: 6px 0 0; }
+  .hidden { display: none; }
+  .topbar { display: flex; align-items: center; gap: 5px; margin-bottom: 10px;
+            padding-bottom: 9px; border-bottom: 1px solid #3d3d3d; }
+  .topbar select { flex: 0 0 auto; width: auto; font-size: 11.5px; padding: 2px 5px; }
+  .topbar .globe { font-size: 14px; line-height: 1; opacity: .85; }
+  .topbar .uitag { font-size: 9.5px; font-weight: 600; letter-spacing: .06em;
+                   color: #8a8a8a; margin: 0 3px 0 -1px; }
+  .topbar .brand { color: #6a6a6a; font-size: 11px; }
+</style>
+</head>
+<body>
+
+<!-- Globe + "UI" say that this is the INTERFACE language, in any language: someone
+     who opened the panel in a language they cannot read has to find this without
+     reading. The options are invariant and never translated for the same reason. -->
+<div class="topbar">
+  <span class="globe">🌐</span><span class="uitag">UI</span>
+  <select id="uiLang">
+    <option value="auto">Default</option>
+    <option value="pt">Português</option>
+    <option value="en">English</option>
+    <option value="es">Español</option>
+  </select>
+  <span class="grow"></span>
+  <span class="brand">Shower Dial</span>
+</div>
+
+<div class="card">
+  <div class="status">
+    <span class="dot" id="dot"></span>
+    <span id="statusText"></span>
+    <span class="grow"></span>
+    <button id="btnRescan" data-t="rescan">Search again</button>
+  </div>
+  <div class="row hidden" id="rowHost" style="margin: 10px 0 0;">
+    <label for="host" id="t-host">Address</label>
+    <input type="text" id="host" placeholder="192.168.1.20" autocomplete="off" spellcheck="false">
+    <button id="btnUseHost" data-t="use">Use</button>
+  </div>
+  <p class="hint">
+    <span id="t-hint"></span>
+    <button class="linkish" id="btnManual" data-t="typeIt">type the address</button>
+  </p>
+</div>
+
+<div class="row">
+  <label for="home" id="t-home">One press</label>
+  <select id="home" data-key="home"></select>
+</div>
+<p class="hint" id="t-homehint"></p>
+
+<div class="row">
+  <label for="low" id="t-cycle">Double press</label>
+  <select id="low" data-key="low"></select>
+  <span style="color:#9a9a9a">→</span>
+  <select id="high" data-key="high"></select>
+</div>
+<p class="hint" id="t-cyclehint"></p>
+
+<div class="row">
+  <label for="label" id="t-label">Label</label>
+  <input type="text" id="label" maxlength="14" autocomplete="off">
+</div>
+<p class="hint" id="t-labelhint"></p>
+
+<script>
+"use strict";
+// Property Inspector — classic Stream Deck protocol (local WebSocket, no CDN).
+
+const I18N = {
+  en: {
+    rescan: "Search again", use: "Use", host: "Address", typeIt: "type the address",
+    home: "One press", cycle: "Double press", label: "Label",
+    homehint: "Your everyday temperature. One press takes the heater there, turning it on if needed.",
+    cyclehint: "Two quick presses turn the dial one notch up through this range, then back to the start.",
+    labelhint: "Optional: a name under the number, such as whose shower it is.",
+    searching: "Looking for the heater on your network…",
+    found: "Heater found at", manual: "Heater at", unreachable: "not answering",
+    notFound: "No heater found on your network.",
+    hint: "The Wi-Fi module is found by itself. If it is on another network or the search fails,",
+  },
+  pt: {
+    rescan: "Procurar de novo", use: "Usar", host: "Endereço", typeIt: "digite o endereço",
+    home: "Um toque", cycle: "Toque duplo", label: "Rótulo",
+    homehint: "Sua temperatura de todo dia. Um toque leva o aquecedor até ela, ligando se preciso.",
+    cyclehint: "Dois toques rápidos giram o dial um ponto para cima nesta faixa, e depois voltam ao início.",
+    labelhint: "Opcional: um nome sob o número, por exemplo de quem é o banho.",
+    searching: "Procurando o aquecedor na sua rede…",
+    found: "Aquecedor encontrado em", manual: "Aquecedor em", unreachable: "sem resposta",
+    notFound: "Nenhum aquecedor encontrado na sua rede.",
+    hint: "O módulo Wi-Fi é encontrado sozinho. Se ele estiver em outra rede ou a busca falhar,",
+  },
+  es: {
+    rescan: "Buscar de nuevo", use: "Usar", host: "Dirección", typeIt: "escribe la dirección",
+    home: "Una pulsación", cycle: "Doble pulsación", label: "Etiqueta",
+    homehint: "Tu temperatura de todos los días. Una pulsación lleva el calentador ahí, encendiéndolo si hace falta.",
+    cyclehint: "Dos pulsaciones rápidas giran el dial un punto hacia arriba en este rango, y luego vuelven al inicio.",
+    labelhint: "Opcional: un nombre bajo el número, por ejemplo de quién es la ducha.",
+    searching: "Buscando el calentador en tu red…",
+    found: "Calentador encontrado en", manual: "Calentador en", unreachable: "sin respuesta",
+    notFound: "No se encontró ningún calentador en tu red.",
+    hint: "El módulo Wi-Fi se encuentra solo. Si está en otra red o la búsqueda falla,",
+  },
+};
+
+let ws = null, ctx = null, actionId = "", settings = {}, global = {};
+let appLang = "en", lang = "en";
+let heater = { host: "", scanning: false, progress: 0, reachable: false, manual: false,
+               temperatures: [] };
+
+const T = () => I18N[lang] || I18N.en;
+
+function pickLang(tag) {
+  const t = String(tag || "").toLowerCase();
+  return t.startsWith("pt") ? "pt" : t.startsWith("es") ? "es" : t.startsWith("en") ? "en" : "";
+}
+
+/** Same order as the plugin: the owner's choice, then the Stream Deck's
+ *  language, then the browser's (which follows the OS), then English. */
+function resolveLang() {
+  if (global.uiLang && global.uiLang !== "auto") return global.uiLang;
+  return appLang || pickLang(navigator.language) || "en";
+}
+
+function connectElgatoStreamDeckSocket(inPort, inUUID, inRegisterEvent, inInfo, inActionInfo) {
+  ctx = inUUID;
+  try {
+    const info = JSON.parse(inActionInfo);
+    settings = (info && info.payload && info.payload.settings) || {};
+    actionId = (info && info.action) || "";
+  } catch (e) { settings = {}; }
+  try { appLang = pickLang(JSON.parse(inInfo).application.language); } catch (e) { appLang = ""; }
+  lang = resolveLang();
+
+  ws = new WebSocket("ws://127.0.0.1:" + inPort);
+  ws.addEventListener("open", function () {
+    ws.send(JSON.stringify({ event: inRegisterEvent, uuid: inUUID }));
+    ws.send(JSON.stringify({ event: "getGlobalSettings", context: ctx }));
+    applyLanguage();
+    fillForm();
+    toPlugin({ ask: "status" });
+  });
+  ws.addEventListener("message", function (raw) {
+    let msg;
+    try { msg = JSON.parse(raw.data); } catch (e) { return; }
+    if (msg.event === "didReceiveSettings") {
+      settings = (msg.payload && msg.payload.settings) || {};
+      fillForm();
+    } else if (msg.event === "didReceiveGlobalSettings") {
+      global = (msg.payload && msg.payload.settings) || {};
+      lang = resolveLang();
+      document.getElementById("uiLang").value = global.uiLang || "auto";
+      applyLanguage();
+    } else if (msg.event === "sendToPropertyInspector" && msg.payload && msg.payload.evt === "heater") {
+      heater = msg.payload;
+      renderStatus();
+      fillTemperatures();
+    }
+  });
+}
+window.connectElgatoStreamDeckSocket = connectElgatoStreamDeckSocket;
+
+function toPlugin(payload) {
+  if (!ws || ws.readyState !== 1) return;
+  ws.send(JSON.stringify({ event: "sendToPlugin", context: ctx, action: actionId, payload }));
+}
+function save() {
+  if (!ws || ws.readyState !== 1) return;
+  ws.send(JSON.stringify({ event: "setSettings", context: ctx, payload: settings }));
+}
+function saveGlobal() {
+  if (!ws || ws.readyState !== 1) return;
+  ws.send(JSON.stringify({ event: "setGlobalSettings", context: ctx, payload: global }));
+}
+
+function renderStatus() {
+  const t = T();
+  const dot = document.getElementById("dot");
+  const text = document.getElementById("statusText");
+  if (heater.scanning) {
+    dot.className = "dot busy";
+    text.textContent = t.searching + (heater.progress ? " " + heater.progress + "%" : "");
+  } else if (!heater.host) {
+    dot.className = "dot bad";
+    text.textContent = t.notFound;
+  } else {
+    dot.className = "dot " + (heater.reachable ? "good" : "bad");
+    text.textContent = (heater.manual ? t.manual : t.found) + " " + heater.host +
+      (heater.reachable ? "" : " · " + t.unreachable);
+  }
+  document.getElementById("btnRescan").disabled = heater.scanning;
+}
+
+const DEFAULTS = { home: 37, low: 37, high: 42 };
+
+/** The three dials offer only the temperatures the heater itself has. */
+function fillTemperatures() {
+  const stops = heater.temperatures && heater.temperatures.length
+    ? heater.temperatures : [35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 48, 50, 55, 60];
+  document.querySelectorAll("select[data-key]").forEach(function (list) {
+    const key = list.getAttribute("data-key");
+    const chosen = stops.indexOf(Number(settings[key])) >= 0 ? Number(settings[key]) : DEFAULTS[key];
+    list.innerHTML = "";
+    stops.forEach(function (celsius) {
+      const item = document.createElement("option");
+      item.value = String(celsius);
+      item.textContent = celsius + " °C";
+      list.appendChild(item);
+    });
+    list.value = String(chosen);
+  });
+}
+
+function fillForm() {
+  fillTemperatures();
+  document.getElementById("label").value = settings.label || "";
+}
+
+function applyLanguage() {
+  const t = T();
+  document.querySelectorAll("[data-t]").forEach(function (el) {
+    if (t[el.getAttribute("data-t")]) el.textContent = t[el.getAttribute("data-t")];
+  });
+  document.getElementById("t-host").textContent = t.host;
+  document.getElementById("t-home").textContent = t.home;
+  document.getElementById("t-homehint").textContent = t.homehint;
+  document.getElementById("t-cycle").textContent = t.cycle;
+  document.getElementById("t-cyclehint").textContent = t.cyclehint;
+  document.getElementById("t-label").textContent = t.label;
+  document.getElementById("t-labelhint").textContent = t.labelhint;
+  document.getElementById("t-hint").textContent = t.hint + " ";
+  renderStatus();
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+  document.getElementById("uiLang").addEventListener("change", function (e) {
+    global.uiLang = e.target.value;
+    lang = resolveLang();
+    saveGlobal();
+    applyLanguage();
+  });
+  document.getElementById("btnRescan").addEventListener("click", function () {
+    toPlugin({ ask: "rescan" });
+  });
+  document.getElementById("btnManual").addEventListener("click", function () {
+    const row = document.getElementById("rowHost");
+    row.classList.toggle("hidden");
+    if (!row.classList.contains("hidden")) {
+      document.getElementById("host").value = heater.host || "";
+      document.getElementById("host").focus();
+    }
+  });
+  document.getElementById("btnUseHost").addEventListener("click", function () {
+    const host = document.getElementById("host").value.trim();
+    if (host) toPlugin({ ask: "setHost", host: host });
+  });
+  document.getElementById("host").addEventListener("keydown", function (e) {
+    if (e.key === "Enter") document.getElementById("btnUseHost").click();
+  });
+  document.querySelectorAll("select[data-key]").forEach(function (list) {
+    list.addEventListener("change", function (e) {
+      settings[list.getAttribute("data-key")] = Number(e.target.value);
+      // The range must not be upside down; the plugin also guards this.
+      if (Number(settings.high) < Number(settings.low)) {
+        settings[list.getAttribute("data-key") === "low" ? "high" : "low"] = Number(e.target.value);
+        fillTemperatures();
+      }
+      save();
+    });
+  });
+  document.getElementById("label").addEventListener("input", function (e) {
+    settings.label = e.target.value;
+    save();
+  });
+});
+</script>
+</body>
+</html>
