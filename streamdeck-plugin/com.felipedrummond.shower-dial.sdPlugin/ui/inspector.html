@@ -185,7 +185,9 @@ function connectElgatoStreamDeckSocket(inPort, inUUID, inRegisterEvent, inInfo, 
       settings = (msg.payload && msg.payload.settings) || {};
       fillForm();
     } else if (msg.event === "didReceiveGlobalSettings") {
-      global = (msg.payload && msg.payload.settings) || {};
+      // Merge, never replace: the plugin writes host/manual, this panel writes
+      // uiLang, and a write from either side may predate the other's.
+      global = Object.assign({}, global, (msg.payload && msg.payload.settings) || {});
       lang = resolveLang();
       document.getElementById("uiLang").value = global.uiLang || "auto";
       applyLanguage();

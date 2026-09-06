@@ -37,6 +37,16 @@ type GlobalSettings = {
 
 let global: GlobalSettings = {};
 
+/** The panel owns `uiLang`, the plugin owns `host`/`manual`, and both write the
+ *  same record. Writing a stale copy wipes the other side's field — the panel
+ *  losing its language after a rescan, the plugin losing the heater after a
+ *  language change — so every write starts from what is stored right now. */
+async function remember(patch: Partial<GlobalSettings>): Promise<void> {
+  const stored = ((await streamDeck.settings.getGlobalSettings()) ?? {}) as GlobalSettings;
+  global = { ...stored, ...global, ...patch };
+  await streamDeck.settings.setGlobalSettings(global);
+}
+
 function currentText(): KeyText {
   return keyText(pickLocale(global.uiLang, streamDeck.info?.application?.language,
                             Intl.DateTimeFormat().resolvedOptions().locale));
@@ -88,8 +98,7 @@ class Heater {
     });
     this.scanning = false;
     if (host) {
-      global = { ...global, host, manual: false };
-      await streamDeck.settings.setGlobalSettings(global);
+      await remember({ host, manual: false });
       streamDeck.logger.info(`heater found at ${host}`);
     } else {
       streamDeck.logger.warn("no heater answered on any local subnet");
@@ -99,8 +108,7 @@ class Heater {
   }
 
   async useHost(host: string): Promise<void> {
-    global = { ...global, host, manual: true };
-    await streamDeck.settings.setGlobalSettings(global);
+    await remember({ host, manual: true });
     this.state = undefined;
     await this.poll();
     this.notify();
@@ -276,7 +284,13 @@ class DialKey extends SingletonAction<DialSettings> {
 }
 
 streamDeck.settings.onDidReceiveGlobalSettings((event) => {
-  global = (event.settings ?? {}) as GlobalSettings;
+  const incoming = (event.settings ?? {}) as GlobalSettings;
+  const merged = { ...global, ...incoming };
+  // A panel that opened before the heater was found saves without `host`;
+  // keep ours and put it back in the store rather than forgetting the heater.
+  const lostHost = global.host && incoming.host !== global.host;
+  global = merged;
+  if (lostHost) void streamDeck.settings.setGlobalSettings(global);
   heater.startPolling();
 });
 

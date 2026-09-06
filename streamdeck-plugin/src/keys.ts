@@ -29,6 +29,15 @@ function flame(tone: string): string {
     `c4 1.2 6.6 5 6.6 9.6 0 3.6-2.5 6.4-5.5 6.4S11 22.6 11 19z" fill="${tone}"/>`;
 }
 
+/** A shower head in the corner: what this key is about, when no flame says so. */
+function shower(tone: string): string {
+  return `<path d="M6 9h7a2.6 2.6 0 0 1 2.6 2.6V13" fill="none" stroke="${tone}"` +
+    ` stroke-width="2" stroke-linecap="round"/>` +
+    `<rect x="9" y="13" width="13.4" height="3.6" rx="1.8" fill="${tone}"/>` +
+    `<g stroke="${tone}" stroke-width="1.5" stroke-linecap="round">` +
+    `<path d="M11.5 19.5v2.5"/><path d="M15.7 19.5v4.5"/><path d="M19.9 19.5v3"/></g>`;
+}
+
 function lock(tone: string): string {
   return `<rect x="52" y="13" width="12" height="9" rx="1.6" fill="${tone}"/>` +
     `<path d="M54.5 13v-2.5a3.5 3.5 0 0 1 7 0V13" fill="none" stroke="${tone}"` +
@@ -65,7 +74,8 @@ export function dialKey(face: KeyFace): string {
     : "";
   const shown = face.setpoint === undefined ? "—" : `${face.setpoint}°`;
   const number = line(shown, face.label ? 42 : 46, face.label ? 26 : 30, tone, 0.95);
-  const badge = (face.heating && face.on ? flame(AMBER) : "") + (face.locked ? lock(RED) : "");
+  const badge = (face.heating && face.on ? flame(AMBER) : shower(face.on ? "#8a9099" : DIM)) +
+    (face.locked ? lock(RED) : "");
   const heading = face.goingTo !== undefined && face.goingTo !== face.setpoint
     ? line(`→ ${face.goingTo}°`, 15, 10, AMBER, 0.9) : "";
   const title = face.label ? line(face.label, 56, 9.5, INK, 0.8) : "";
