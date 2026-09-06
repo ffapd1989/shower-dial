@@ -75,7 +75,9 @@ export function dialKey(face: KeyFace): string {
 
 /** A message the owner has to read, centred and big enough to actually read. */
 export function noticeKey(lines: string[], tone = INK): string {
-  const size = lines.length > 1 ? 11.5 : 12.5;
+  const longest = Math.max(...lines.map((text) => text.length));
+  // "sin calentador" at 12.5 px runs off a 72 px key; one size fits all three languages.
+  const size = longest > 11 ? 9.5 : lines.length > 1 ? 11.5 : 12.5;
   const step = size + 4;
   const top = 36 - ((lines.length - 1) * step) / 2 + size / 3;
   return asImage(lines.map((text, index) => line(text, top + index * step, size, tone, 0.85))
