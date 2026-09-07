@@ -40,11 +40,14 @@ export type HeaterState = {
   priorityIp: string | null;
 };
 
-/** `tela_` is a comma-separated line; these are the columns that matter. */
+/** `tela_` is a comma-separated line; these are the columns that matter. The
+ *  priority column is a bare `null` after the module reboots and `<ip>:pri` or
+ *  `null:pri` once anybody has taken or released the lock. */
 export function parseTela(line: string): HeaterState | undefined {
   const fields = line.trim().split(",");
-  if (fields.length < 8 || !fields[6].includes(":pri")) return undefined;
-  const priority = fields[6].split(":")[0];
+  if (fields.length < 8) return undefined;
+  const priority = fields[6].replace(/:pri$/, "");
+  if (priority !== "null" && !/^\d+(\.\d+){3}$/.test(priority)) return undefined;
   return {
     on: fields[0] !== "11",
     heating: fields[2] === "1",

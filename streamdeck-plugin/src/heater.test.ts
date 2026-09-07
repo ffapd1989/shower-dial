@@ -18,6 +18,11 @@ test("parses a live tela_ line", () => {
   assert.deepEqual(state, { on: true, heating: false, target: 37, priorityIp: null });
 });
 
+test("parses the bare null the module reports after it reboots", () => {
+  const state = parseTela("41,0,0,175,9624,0,null,4,73037,26 Ago 2024,14,0,0,255,{ 0 - 0 }");
+  assert.deepEqual(state, { on: true, heating: false, target: 36, priorityIp: null });
+});
+
 test("reads off, heating and a held lock", () => {
   const state = parseTela("11,0,1,18,1380,0,192.168.0.7:pri,13,5327,Sep 16 2022,15,0,0,0");
   assert.deepEqual(state, { on: false, heating: true, target: 45, priorityIp: "192.168.0.7" });
@@ -26,6 +31,7 @@ test("reads off, heating and a held lock", () => {
 test("rejects anything that is not a heater", () => {
   assert.equal(parseTela("<html>hello</html>"), undefined);
   assert.equal(parseTela("1,2,3"), undefined);
+  assert.equal(parseTela("a,b,c,d,e,f,g,h,i"), undefined);
 });
 
 test("the dial skips the indexes the heater skips", () => {

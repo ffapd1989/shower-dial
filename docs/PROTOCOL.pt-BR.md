@@ -36,7 +36,7 @@ Separada por vírgulas. Exemplo: `41,0,0,175,9600,0,null:pri,5,312583,26 Ago 202
 |---|---|
 | 0 | Energia: `11` = desligado, `41`/`42` = ligado |
 | 2 | `1` enquanto há água sendo aquecida (queimador aceso) |
-| 6 | Prioridade: `<ip>:pri`, ou `null:pri` quando ninguém a tem |
+| 6 | Prioridade: `<ip>:pri`, `null:pri` quando ninguém a tem, ou um `null` seco depois que o módulo reinicia, até alguém tomar ou soltar a trava |
 | 7 | **Índice** do setpoint (tabela abaixo) |
 | 9 | Data do firmware |
 

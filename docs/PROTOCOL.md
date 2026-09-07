@@ -36,7 +36,7 @@ Comma-separated. Example: `41,0,0,175,9600,0,null:pri,5,312583,26 Ago 2024,14,0,
 |---|---|
 | 0 | Power: `11` = off, `41`/`42` = on |
 | 2 | `1` while water is being heated (burner on) |
-| 6 | Priority: `<ip>:pri`, or `null:pri` when nobody holds it |
+| 6 | Priority: `<ip>:pri`, `null:pri` when nobody holds it, or a bare `null` after the module reboots, until somebody takes or releases the lock |
 | 7 | Setpoint **index** (see the table below) |
 | 9 | Firmware date |
 
